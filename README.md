@@ -51,7 +51,7 @@ yarn build
 
 ```typescript
 interface ICard { 
-  _id: string;            // уникальный индентификатор товара
+  id: string;            // уникальный индентификатор товара
   description: string;    // описание товара
   image: string;          // картинка товара
   title: string;          // название товара
@@ -60,16 +60,7 @@ interface ICard {
 }
 ```
 
-Корзина товаров
-
-```typescript
-interface IBasket {
-  items: ICard[];     // добавленные товары
-  total: number;      // сумма заказа
-}
-```
-
-Данные для оформления заказа
+Данные о заказе, отправляемые на сервер
 
 ```typescript
 interface IOrder {  
@@ -78,7 +69,7 @@ interface IOrder {
   phone: string;      // номер телефона
   address: string;    // адрес доставки
   total: number;      // сумма заказа
-  items: ICard[];     // перечень (id) товаров в заказе
+  items: string[];    // перечень (id) товаров в заказе
 }
 ```
 
@@ -186,8 +177,8 @@ constructor(protected events: EventEmitter)
 - `isEmpty(): boolean` - проверяет наличие товаров (в целом) в корзине (для управления кнопкой "Оформить");
 - `hasItem(cardId: string): boolean` - проверка наличия товара в корзине;
 - `getItemCount(): number` - возвращает количество товаров в корзине;
-- `get items(): ICard[]` - возвращает массив товаров в корзине;
-- `get total(): number` - возвращает общую стоимость всех товаров в корзине;
+- `getitems(): ICard[]` - возвращает массив товаров в корзине;
+- `gettotal(): number` - возвращает общую стоимость всех товаров в корзине;
 - `clear(): void` - очищает корзину (например, после оформления заказа).
 
 
@@ -210,12 +201,12 @@ constructor(protected events: EventEmitter)
 ```
 
 <u>Методы:</u>
-- `setPayment(payment: string): void` - устанавливает способ оплаты и производит валидацию;
+- `setPayment(payment: string): void` - устанавливает способ оплаты;
 - `setEmail(email: string): void` - устанавливает электронную почту и производит валидацию;
 - `setPhone(phone: string): void` - устанавливает номер телефона и производит валидацию;
 - `setAddress(address: string): void` - устанавливает адрес доставки и производит валидацию;
 - `clear(): void` - очистка данных из полей формы заказа;
-- `validateOrder(): boolean` - проверка факта и корректности заполнения обязательных полей;
+- `validate(): { payment: string; email: string; phone: string; address: string; } — проверяет правильность заполнения полей заказа, возвращает объект с текстами ошибок для каждого поля: пустая строка означает, что поле заполнено правильно, непустая — содержит описание ошибки. Проверяет, что поля не пустые (с учётом удаления пробелов), а адрес электронной почты соответствует формату.
 - `getOrderData(): IOrder` - возвращает объект с текущими данными о заказе.
 
 ---
@@ -225,7 +216,7 @@ constructor(protected events: EventEmitter)
 
 #### **Класс `PageView`**
 <u>Назначение:</u>
-Отображает главную страницу магазина - список карточек товаров и верхнюю панель (счётчик корзины). Является корневым компонентом UI.
+Отображает главную страницу магазина - список карточек товаров и верхнюю панель (счётчик корзины).
 
 <u>Конструктор:</u>
 
@@ -241,17 +232,15 @@ events - экземпляр класса EventEmitter для инициации 
 - `events: IEvents` - брокер событий.
 
 <u>Методы:</u>
-- `render(data: { catalog: ICard[], basketCount: number }): HTMLElement`  
+- `render(data: { catalog: ICard[], basketCount: number }): void`  
 *Назначение:* рендерит список карточек и обновляет счётчик корзины.  
 *Принимает:* объект с данными каталога и количеством товаров в корзине.  
 *Возвращает:* корневой элемент страницы.  
 
-Для данных ICard[] будет реализован сеттер `set catalog`, принимающий массив карточек. 
-
 
 #### **Класс `CardView`**
 <u>Назначение:</u>
-Абстрактный базовый класс для всех типов карточек товаров. Определяет общую структуру и поведение карточек.
+Абстрактный базовый класс для всех типов карточек товаров. Определяет общую структуру и методы отображения карточек.
 
 <u>Конструктор:</u>
 
@@ -265,33 +254,55 @@ events - экземпляр класса EventEmitter для инициации 
 - `container: HTMLElement` - DOM-элемент карточки;
 - `events: IEvents` - экземпляр класса EventEmitter для инициации событий;
 - `title: HTMLElement` - заголовок товара;
-- `image: HTMLImageElement` - изображение товара;
+- `image?: HTMLImageElement` - изображение товара;
 - `price: HTMLElement` - цена товара;
-- `category: HTMLElement` - категория товара.
+- `category?: HTMLElement` - категория товара.
 
 <u>Методы:</u>
 - `setTitle(value: string): void` - устанавливает название товара;
 - `setImage(src: string, alt: string): void` - устанавливает изображение;
 - `setPrice(value: number | null): void` - устанавливает цену;
 - `setCategory(value: string): void` - устанавливает категорию;
-- `render(data: TCardPreview): HTMLElement` - рендерит карточку по переданным данным.
+- `render(data: TCardPreview): void` - рендерит карточку по переданным данным.
 
 
-#### **Класс `CatalogItemView`** (наследуется от CardView)
+#### **Класс `CatalogItemView`**
 <u>Назначение:</u>
-Отображает карточку товара в списке каталога. При клике генерирует событие выбора товара.
+Наследуется от `CardView`, отображает карточку товара в списке каталога. При клике генерирует событие выбора товара.
 
 <u>Методы:</u>
-- `render(data: TCardPreview): HTMLElement`  
-*Назначение:* рендерит карточку товара в каталоге.  
-*Принимает:* `TCardPreview` - минимальные данные для отображения.  
-*Возвращает:* DOM-элемент карточки.  
-*Генерирует событие:* `card:select` при клике на карточку.
+- `render(data: TCardPreview & { id: string }): void` - переопределяет метод render из CardView, добавляя обработчик клика по карточке, который генерирует событие `card:select` с id товара. 
 
 
-#### **Класс `ModalView`**
+#### **Класс `BasketItemView`**
 <u>Назначение:</u>
-Класс представляет компонент модального окна, реализует открытие/закрытие и управление содержимым модальных окон. 
+Отображает одну карточку товара в корзине (название, цена, кнопка удаления). Наследуется от `CardView`.
+
+<u>Конструктор:</u>
+
+```typescript
+constructor(index: number, container: HTMLElement, events: IEvents)
+```
+index - порядковый номер товара в корзине (для отображения).  
+container - DOM-элемент карточки.  
+events - брокер событий.
+
+<u>Поля:</u>
+- `indexElement: HTMLElement` - отображение номера позиции;
+- `removeButton: HTMLButtonElement` - кнопка удаления.
+
+<u>Методы:</u>
+- `render(data: TBasketItem & { id: string }): void`  
+*Назначение:* рендерит элемент корзины.  
+*Принимает:* объект с title, price, id.  
+*Генерирует событие:* `basket:removeItem` при клике на кнопку удаления, передавая id товара.  
+- `setIndex(value: number): void` - устанавливает порядковый номер.
+- `setPrice(value: number): void` - устанавливает цену.
+
+
+#### **Класс `Modal`**
+<u>Назначение:</u>
+Базовый класс для модальных окон. Управляет открытием, закрытием и содержимым. 
 
 <u>Конструктор:</u>
 
@@ -301,7 +312,7 @@ constructor(container: HTMLElement, events: IEvents)
 
 <u>Поля:</u>
 - `content: HTMLElement` - внутреннее содержимое модального окна;
-- `closeButton: HTMLElement` - крестик закрытия окна;
+- `closeButton: HTMLElement` - кнопка закрытия окна (крестик);
 - `events: IEvents` - экземпляр класса EventEmitter для инициации событий.
 
 <u>Методы:</u>
@@ -311,12 +322,12 @@ constructor(container: HTMLElement, events: IEvents)
 - `close(): void`  
 *Назначение:* закрывает модальное окно.  
 *Генерирует событие:* `modal:close`.
-- `render(content: HTMLElement): void` - принимает объект со свойством `content` и вызывает метод `open()`.
+- `render(content: HTMLElement): void` - устанавливает содержимое модального окна.
 
 
-#### **Класс `CardModalView`**
+#### **Класс `CardModal`**
 <u>Назначение:</u>
-Отображает модальное окно с подробной информацией о товаре. Позволяет добавить/удалить товар из корзины и закрыть окно.
+Отображает подробную информацию о товаре. Позволяет добавить/удалить товар из корзины.
 
 <u>Конструктор:</u>
 
@@ -327,26 +338,22 @@ constructor(container: HTMLElement, events: IEvents)
 <u>Поля:</u>
 - `content: HTMLElement` - контейнер с информацией о товаре;
 - `button: HTMLButtonElement | null` - кнопка «Купить»/«Убрать из корзины»;
-- `closeButton: HTMLElement` - крестик для закрытия модального окна.
 
 <u>Методы:</u>
-- `render(data: TCardInfo): HTMLElement`  
+- `render(data: TCardInfo): void`  
 *Назначение:* рендерит подробную информацию о товаре.  
 *Принимает:* `TCardInfo` - полные данные карточки.  
 *Возвращает:* элемент модального окна.  
 *Генерирует события:*
   - `card:addBasket` - при нажатии на кнопку «Купить»;
   - `card:removeBasket` - при нажатии на кнопку «Убрать из корзины»;
-  - `modal:close` - при клике на крестик или оверлей.
-- `setInBasket(inBasket: boolean): void`
-*Назначение:* обновляет состояние кнопки в зависимости от того, находится ли товар в корзине.
-- `setPrice(price: number | null): void`
-*Назначение:* устанавливает отображение цены товара и управляет активностью кнопки.
+- `setInBasket(inBasket: boolean): void` - обновляет состояние кнопки в зависимости от того, находится ли товар в корзине.
+- `setPrice(price: number | null): void` - устанавливает отображение цены товара и управляет активностью кнопки.
 
 
-#### **Класс `BasketView`**
+#### **Класс `BasketModal`**
 <u>Назначение:</u>
-Отображает модальное окно корзины с списком товаров, общей стоимостью и кнопкой «Оформить заказ».
+Отображает содержимое корзины: список товаров, общую стоимость и кнопку «Оформить заказ».Наследуется от `Modal`.
 
 <u>Конструктор:</u>
 
@@ -361,49 +368,17 @@ constructor(container: HTMLElement, events: IEvents)
 - `items: BasketItemView[]` - массив экземпляров карточек товаров в корзине.
 
 <u>Методы:</u>
-- `render(data: IBasket): HTMLElement`  
+- `render(data: IBasket): void`  
 *Назначение:* рендерит содержимое корзины.  
 *Принимает:* объект `IBasket` - список товаров и общая сумма.  
-*Возвращает:* DOM-элемент модального окна.  
 *Генерирует событие:* `basket:order` при нажатии на кнопку «Оформить».
 - `setTotal(value: number): void` - устанавливает общую стоимость.
-- `setItems(items: TBasketItem[]): void` - рендерит список товаров (создаёт BasketItemView для каждого).
+- `setItems(items: TBasketItem[]): void` - рендерит список товаров, создавая экземпляры `BasketItemView` для каждого.
 
 
-#### **Класс `BasketItemView`**
+#### **Класс `Form`**
 <u>Назначение:</u>
-Отображает одну карточку товара в корзине (название, цена, кнопка удаления).
-
-<u>Конструктор:</u>
-
-```typescript
-constructor(index: number, container: HTMLElement, events: IEvents)
-```
-index - порядковый номер товара в корзине (для отображения).  
-container - DOM-элемент карточки.  
-events - брокер событий.
-
-<u>Поля:</u>
-- `indexElement: HTMLElement` - отображение номера позиции;
-- `title: HTMLElement` - название товара;
-- `price: HTMLElement` - цена товара;
-- `removeButton: HTMLButtonElement` - кнопка удаления.
-
-<u>Методы:</u>
-- `render(data: TBasketItem & { id: string }): HTMLElement`  
-*Назначение:* рендерит элемент корзины.  
-*Принимает:* объект с title, price, id.  
-*Возвращает:* DOM-элемент.  
-*Генерирует событие:* `basket:removeItem` при клике на кнопку удаления, передавая id товара.  
-- `setIndex(value: number): void` - устанавливает порядковый номер.
-- `setPrice(value: number): void` - устанавливает цену.
-
-
-#### **Класс `OrderView`**
-<u>Назначение:</u>
-Отображает модальное окно формы заказа, разделённое на два шага:
-1. Выбор способа оплаты и ввод адреса доставки.
-2. Ввод контактных данных (email, телефон).
+Абстрактный базовый класс для форм заказа. Управляет валидацией, ошибками и состоянием кнопки отправки.
 
 <u>Конструктор:</u>
 
@@ -412,40 +387,67 @@ constructor(container: HTMLElement, events: IEvents)
 ```
 
 <u>Поля:</u>
-- `paymentForm: HTMLElement` - форма оплаты и адреса;
-- `contactForm: HTMLElement` - форма контактов;
-- `addressInput: HTMLInputElement` - поле ввода адреса;
-- `emailInput: HTMLInputElement` - поле email;
-- `phoneInput: HTMLInputElement` - поле телефона;
-- `buttonOnline: HTMLButtonElement` - выбор оплаты онлайн;
-- `buttonCash: HTMLButtonElement` - выбор оплаты при получении;
-- `submitButton: HTMLButtonElement` - кнопка отправки формы;
+- `form: HTMLElement` - элемент формы;
+- `submitButton: HTMLButtonElement` - кнопка отправки данных формы;
+- `errorContainer: HTMLElement` - элемент, в котором отображаются ошибки при невалидности полей.
 
 <u>Методы:</u>  
-- `render(): HTMLElement`  
-*Назначение:* рендерит пустую форму заказа.  
-*Возвращает:* DOM-элемент модального окна.
-- `setPayment(value: string): void` - выделяет выбранный способ оплаты;
-- `setAddress(value: string): void` - устанавливает значение поля адреса;
-- `setEmail(value: string): void` - устанавливает email;
-- `setPhone(value: string): void` - устанавливает телефон;
-- `validateFields(step: 'payment' | 'contacts'): boolean` - проверяет заполнение полей текущего шага;
-- `switchToContacts(): void` - переключается на форму контактов;
-- `blockSubmit(): void` - блокирует кнопку отправки;
-- `unblockSubmit(): void` - разблокирует кнопку отправки.  
-*Генерируемые события:*   
-  - `form:change` - при изменении любого поля формы;  
-  - `order:submit` - при отправке формы (нажатии «Оплатить»).
+- `render(data: Partial<TPaymentForm | TContactForm>): void` — принимает данные и обновляет пользовательский интерфейс;
+- `set valid(value: boolean)` - устанавливает состояние валидности формы;
+- `setErrors(errors: Record<string, string>)`- устанавливает текст ошибок валидации полей формы.
+- `lockSubmit(): void` — блокирует кнопку отправки;
+- `unlockSubmit(): void` — разблокирует кнопку отправки.
 
 
-#### **Класс `SuccessView`**
+#### **Класс `PaymentForm`**
 <u>Назначение:</u>
-Отображает модальное окно успешного оформления заказа с итоговой суммой.
+Отображает форму выбора способа оплаты и ввода адреса доставки. Наследуется от класса `Form`.
 
 <u>Конструктор:</u>
 
 ```typescript
-constructor(container: HTMLElement, protected events: IEvents)
+constructor(container: HTMLElement, events: IEvents)
+```
+
+<u>Поля:</u>
+- `buttonOnline: HTMLButtonElement` - кнопка формы для выбора способа оплаты онлайн;
+- `buttonCash: HTMLButtonElement` - кнопка формы для выбора способа оплаты при получении;
+- `addressInput: HTMLInputElement` - поле для ввода адреса доставки.
+
+<u>Методы:</u>
+- `render(data: TPaymentForm): void` - устанавливает значение поля адреса и активный способ оплаты; 
+- `setAddress(value: string): void` - устанавливает адрес доставки;
+- `togglePayment(method: 'online' | 'cash'): void` - переключение активного способа оплаты (сброс предыдущего выбора и активиция выбранной кнопки).
+
+
+#### **Класс `ContactForm`**
+<u>Назначение:</u>
+Отображает форму ввода контактных данных: электронная почта и телефон пользователя. Наследуется от класса `Form`.
+
+<u>Конструктор:</u>
+
+```typescript
+constructor(container: HTMLElement, events: IEvents)
+```
+
+<u>Поля:</u>
+- `emailInput: HTMLInputElement` - поле для ввода эл.почты;
+- `phoneInput: HTMLInputElement` - поле для ввода номера телефона;
+
+<u>Методы:</u> 
+- `render(data: TContactForm): void` - устанавливает значения полей email и телефона;
+- `setEmail(value: string): void` - устанавливает email;
+- `setPhone(value: string): void` - устанавливает телефон.
+
+
+#### **Класс `SuccessModal`**
+<u>Назначение:</u>
+Отображение успешного оформления заказа с итоговой суммой. Наследуется от `Modal`.
+
+<u>Конструктор:</u>
+
+```typescript
+constructor(container: HTMLElement, events: IEvents)
 ```
 
 <u>Поля:</u>
@@ -453,11 +455,7 @@ constructor(container: HTMLElement, protected events: IEvents)
 - `button: HTMLButtonElement` - кнопка закрытия окна.
 
 <u>Методы:</u>
-- `render(total: number): HTMLElement`  
-*Назначение:* рендерит окно подтверждения с указанной суммой.  
-*Принимает:* число - общая стоимость заказа.  
-*Возвращает:* DOM-элемент модального окна.  
-*Генерирует событие:* `modal:close` при нажатии на кнопку.
+- `render(total: number): void` - рендерит окно подтверждения с указанной суммой.  
 
 ---
 
@@ -465,6 +463,10 @@ constructor(container: HTMLElement, protected events: IEvents)
 ### Слой коммуникации
 #### **Класс `AppApi`**
 Принимает в конструктор экземпляр класса Api и предоставляет методы реализующие взаимодействие с бэкендом сервиса.
+
+<u>Методы:</u>
+- `getProducts(): Promise<{ items: ICard[] }>` — получает список всех товаров с сервера;
+- `postOrder(order: IOrder): Promise<{ id: string; total: number }> — отправляет заказ на сервер.
 
 ---
 
@@ -493,5 +495,6 @@ constructor(container: HTMLElement, protected events: IEvents)
 - `card:removeBasket` - удаление товара из корзины «Убрать из корзины» в модальном окне товара;
 - `basket:removeItem` - удаление товара из корзины (нажатие на кнопку мусорной корзины);
 - `basket:order` - нажатие на кнопку «Оформить» в корзине;
+- `payment:changed` - изменение формы оплаты заказа;
 - `form:change` - изменение значений в полях формы заказа;
 - `order:submit` - отправка заполненной формы заказа (нажатие кнопки «Оплатить»).

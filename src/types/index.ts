@@ -1,6 +1,6 @@
 // Интерфейс карточки
 interface ICard { 
-  _id: string;
+  id: string;
   description: string;
   image: string;
   title: string;
@@ -8,26 +8,20 @@ interface ICard {
   price: number | null;
 }
 
-// Интерфейс корзины
-interface IBasket {
-  items: ICard[];
-  total: number;
-}
-
-// Интерфейс форм оформления заказа
+// Данные о заказе, отправляемые на сервер
 interface IOrder {  
   payment: string;
   email: string;
   phone: string;
   address: string;
   total: number;
-  items: ICard[];
+  items: string[];
 }
 
-// Интерфейс для модели данных карточек
-interface ICardsData {  
-  cards: ICard [];
-  preview: string | null;
+// Интерфейс корзины
+interface IBasket {
+  items: TBasketItem[];
+  total: number;
 }
 
 // Типы для модальных окон
@@ -40,4 +34,3 @@ type TBasketItem = Pick<ICard, 'title' | 'price'>; //мод.окно корзи�
 type TPaymentForm = Pick<IOrder, 'payment' | 'address'>; //мод.окно формы оплаты
 
 type TContactForm = Pick<IOrder, 'email' | 'phone'>; //мод.окно формы контактов
-
